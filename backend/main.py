@@ -140,15 +140,11 @@ def transaction_to_dict(transaction):
     }
 
 
-# ============================================================
-# BASIC ROUTES
-# ============================================================
-
 @app.get("/")
 def root():
     return {
         "message": "CredV API is running",
-        "database": "SQLite connected",
+        "database": "Supabase PostgreSQL connected",
         "authentication": "Custom Auth Enabled"
     }
 
@@ -157,10 +153,9 @@ def root():
 def health():
     return {
         "status": "ok",
-        "database": "SQLite",
+        "database": "Supabase PostgreSQL",
         "time": datetime.now(timezone.utc).isoformat(),
     }
-
 
 # ============================================================
 # AUTH ROUTES
