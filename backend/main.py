@@ -214,29 +214,16 @@ def register_user(
     db.commit()
     db.refresh(new_user)
 
-    # Create temporary default card
-    # New users will replace this during Card Setup
-    default_card = Card(
-        user_id=new_user.id,
-        bank_name="My Credit Card",
-        last4="0000",
-        credit_limit=100000,
-        outstanding=0,
-        credit_score=750,
-        bill_due_date=int(time.time()) + 9 * 86400
-    )
-
-    db.add(default_card)
-    db.commit()
-
     return {
         "message": "Registration successful",
         "user": {
             "id": new_user.id,
             "name": new_user.name,
             "email": new_user.email,
-        }
+            }
     }
+
+   
 
 
 # ---------------- LOGIN ----------------
@@ -428,32 +415,63 @@ def update_card(
     updated_card: CardUpdate,
     db: Session = Depends(get_db)
 ):
+    # Check if the user exists
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    # Check whether the user already has a card
     card = (
         db.query(Card)
         .filter(Card.user_id == user_id)
         .first()
     )
 
+    # ============================================================
+    # NEW USER: No card exists → Create first card
+    # ============================================================
     if not card:
-        raise HTTPException(
-            status_code=404,
-            detail="Card not found"
+        card = Card(
+            user_id=user_id,
+            bank_name=updated_card.bankName,
+            last4=updated_card.last4,
+            credit_limit=updated_card.creditLimit,
+            outstanding=updated_card.outstanding,
+            credit_score=updated_card.creditScore,
         )
 
-    card.bank_name = updated_card.bankName
-    card.last4 = updated_card.last4
-    card.credit_limit = updated_card.creditLimit
-    card.outstanding = updated_card.outstanding
-    card.credit_score = updated_card.creditScore
+        db.add(card)
 
+        message = "Card created successfully"
+
+    # ============================================================
+    # EXISTING USER: Card exists → Update it
+    # ============================================================
+    else:
+        card.bank_name = updated_card.bankName
+        card.last4 = updated_card.last4
+        card.credit_limit = updated_card.creditLimit
+        card.outstanding = updated_card.outstanding
+        card.credit_score = updated_card.creditScore
+
+        message = "Card updated successfully"
+
+    # Save changes
     db.commit()
     db.refresh(card)
 
     return {
-        "message": "Card updated successfully",
+        "message": message,
         "card": card_to_dict(card),
     }
-
 
 # ============================================================
 # GET USER TRANSACTIONS

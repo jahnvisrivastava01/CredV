@@ -7,7 +7,7 @@ import '../models/transaction.dart';
 
 class ApiConfig {
   // Android device connected using adb reverse
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'https://credv.onrender.com';
 }
 
 class ApiService {

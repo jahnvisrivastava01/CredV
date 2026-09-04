@@ -17,18 +17,30 @@ class CreditCardModel {
 
   factory CreditCardModel.fromJson(Map<String, dynamic> json) {
     return CreditCardModel(
-      bankName: json['bankName'] as String,
-      last4: json['last4'] as String,
-      creditLimit: (json['creditLimit'] as num).toDouble(),
-      outstanding: (json['outstanding'] as num).toDouble(),
-      billDueDate: DateTime.fromMillisecondsSinceEpoch(
-        (json['billDueDate'] as int) * 1000,
-      ),
-      creditScore: json['creditScore'] as int,
+      bankName: json['bankName']?.toString() ?? 'My Credit Card',
+
+      last4: json['last4']?.toString() ?? '0000',
+
+      creditLimit:
+          (json['creditLimit'] as num?)?.toDouble() ?? 0.0,
+
+      outstanding:
+          (json['outstanding'] as num?)?.toDouble() ?? 0.0,
+
+      // Backend may not return billDueDate
+      billDueDate: json['billDueDate'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              ((json['billDueDate'] as num).toInt()) * 1000,
+            )
+          : DateTime.now().add(const Duration(days: 30)),
+
+      creditScore:
+          (json['creditScore'] as num?)?.toInt() ?? 750,
     );
   }
 
-  double get utilization => outstanding / creditLimit;
+  double get utilization =>
+      creditLimit > 0 ? outstanding / creditLimit : 0;
 
   double get available => creditLimit - outstanding;
 }

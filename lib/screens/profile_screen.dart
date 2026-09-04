@@ -437,8 +437,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       children: const [
         Text(
-          'A Flutter fintech portfolio project focused on credit card '
-          'management, transactions, rewards and spending analytics.',
+          'A modern Flutter credit card management app for managing cards,'
+          'tracking transactions, rewards, and personal finances.'
         ),
       ],
     );
