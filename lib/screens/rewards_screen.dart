@@ -58,7 +58,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
     try {
       // Fetch transactions ONLY for logged-in user
-      final txns = await _api.fetchTransactions(_userId);
+      final txns = await _api.fetchTransactions( userId: _userId,);
 
       if (!mounted) return;
 

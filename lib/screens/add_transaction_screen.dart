@@ -8,8 +8,7 @@ class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
 
   @override
-  State<AddTransactionScreen> createState() =>
-      _AddTransactionScreenState();
+  State<AddTransactionScreen> createState() => _AddTransactionScreenState();
 }
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
@@ -42,9 +41,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     try {
       await _api.addTransaction(
         userId: _userId,
-        merchant: _merchantController.text.trim(),
+        title: _merchantController.text.trim(),
         amount: double.parse(_amountController.text.trim()),
-        category: _selectedCategory.name,
+        category: _selectedCategory,
+        date: DateTime.now(),
       );
 
       if (!mounted) return;
@@ -77,23 +77,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF101114),
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF101114),
         elevation: 0,
         title: const Text('Add Transaction'),
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-
           child: Form(
             key: _formKey,
-
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
                 const Text(
                   'Record a new expense',
@@ -108,23 +103,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 // MERCHANT NAME
                 TextFormField(
                   controller: _merchantController,
-
                   style: const TextStyle(
                     color: Colors.white,
                   ),
-
                   decoration: InputDecoration(
                     labelText: 'Merchant Name',
-
                     prefixIcon: const Icon(
                       Icons.store,
                     ),
-
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter merchant name';
@@ -143,31 +133,23 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 // AMOUNT
                 TextFormField(
                   controller: _amountController,
-
-                  keyboardType:
-                      const TextInputType.numberWithOptions(
+                  keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-
                   style: const TextStyle(
                     color: Colors.white,
                   ),
-
                   decoration: InputDecoration(
                     labelText: 'Amount',
-
                     prefixText: '₹ ',
-
                     prefixStyle: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                     ),
-
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter amount';
@@ -188,31 +170,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 // CATEGORY
                 DropdownButtonFormField<TxnCategory>(
                   value: _selectedCategory,
-
                   dropdownColor: const Color(0xFF1B1C20),
-
                   decoration: InputDecoration(
                     labelText: 'Category',
-
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-
                   items: TxnCategory.values.map((category) {
                     return DropdownMenuItem<TxnCategory>(
                       value: category,
-
                       child: Text(
                         category.name.toUpperCase(),
-
                         style: const TextStyle(
                           color: Colors.white,
                         ),
                       ),
                     );
                   }).toList(),
-
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
@@ -228,24 +203,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 54,
-
                   child: ElevatedButton(
                     onPressed: _submitting ? null : _submit,
-
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.tealAccent,
                       foregroundColor: Colors.black,
-
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-
                     child: _submitting
                         ? const SizedBox(
                             height: 24,
                             width: 24,
-
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: Colors.black,
@@ -253,7 +223,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           )
                         : const Text(
                             'Add Transaction',
-
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

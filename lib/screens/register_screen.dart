@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/api_service.dart';
 import '../services/user_session.dart';
 import 'card_setup_screen.dart';
+import 'dashboard_screen.dart';
+
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,7 +22,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final _apiService = ApiService();
 
+  final _googleSignIn = GoogleSignIn();
+
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
 
@@ -115,6 +122,122 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  // ============================================================
+  // GOOGLE SIGN-IN / SIGN-UP (combined) — same logic as LoginScreen.
+  // isNewUser decides CardSetupScreen vs Dashboard, regardless of
+  // which screen (Login or Register) the person tapped this from.
+  // ============================================================
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Step 1: Open Google account picker
+      final googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User cancelled
+        return;
+      }
+
+      // Step 2: Get Google authentication credentials
+      final googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Step 3: Authenticate with Firebase
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final firebaseUser = userCredential.user;
+
+      if (firebaseUser == null) {
+        throw Exception('Google sign-in did not return a user');
+      }
+
+      final String name = firebaseUser.displayName ?? 'Google User';
+      final String email = firebaseUser.email ?? '';
+
+      if (email.isEmpty) {
+        throw Exception('Google account did not provide an email');
+      }
+
+      // Step 4: Send Google user to CredV backend
+      final result = await _apiService.googleLogin(
+        name: name,
+        email: email,
+      );
+
+      // Step 5: Get REAL CredV database user ID
+      final dynamic rawUserId = result['userId'] ?? result['id'];
+
+      if (rawUserId == null) {
+        throw Exception('User ID was not returned by server');
+      }
+
+      final int userId =
+          rawUserId is int ? rawUserId : int.parse(rawUserId.toString());
+
+      // Backend decides if user is new in CredV
+      final bool isNewUser = result['isNewUser'] == true;
+
+      // Save real backend user ID
+      UserSession.instance.login(
+        id: userId,
+        userName: result['name']?.toString() ?? name,
+        userEmail: result['email']?.toString() ?? email,
+      );
+
+      if (!mounted) return;
+
+      // New CredV user → Card Setup
+      if (isNewUser) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CardSetupScreen(
+              userId: userId,
+            ),
+          ),
+          (route) => false,
+        );
+      }
+
+      // Existing CredV user → Dashboard
+      else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const DashboardScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      String message = e.toString();
+
+      if (message.startsWith('Exception: ')) {
+        message = message.replaceFirst('Exception: ', '');
+      }
+
+      setState(() {
+        _errorMessage = message;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
       }
     }
   }
@@ -272,6 +395,66 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     fontSize: 16,
                                   ),
                                 ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // =====================================================
+                      // DIVIDER
+                      // =====================================================
+                      Row(
+                        children: [
+                          const Expanded(child: Divider(color: Colors.white24)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'OR',
+                              style: TextStyle(
+                                  color: Colors.white38, fontSize: 12),
+                            ),
+                          ),
+                          const Expanded(child: Divider(color: Colors.white24)),
+                        ],
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // =====================================================
+                      // GOOGLE SIGN-IN BUTTON
+                      // =====================================================
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: OutlinedButton.icon(
+                          onPressed:
+                              _isGoogleLoading ? null : _signInWithGoogle,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white24),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          icon: _isGoogleLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.g_mobiledata, size: 26),
+                          label: Text(
+                            _isGoogleLoading
+                                ? 'Signing in...'
+                                : 'Continue with Google',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ],

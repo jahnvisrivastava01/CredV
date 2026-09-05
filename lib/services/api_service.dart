@@ -5,18 +5,15 @@ import 'package:http/http.dart' as http;
 import '../models/card_model.dart';
 import '../models/transaction.dart';
 
-class ApiConfig {
-  // Android device connected using adb reverse
-  static const String baseUrl = 'https://credv.onrender.com';
-}
-
 class ApiService {
-  final String baseUrl;
+  // ============================================================
+  // BASE URL
+  // ============================================================
 
-  ApiService({this.baseUrl = ApiConfig.baseUrl});
+  static const String baseUrl = 'https://credv.onrender.com';
 
   // ============================================================
-  // AUTH - REGISTER
+  // REGISTER
   // ============================================================
 
   Future<Map<String, dynamic>> register({
@@ -45,16 +42,10 @@ class ApiService {
     }
 
     final Map<String, dynamic> user =
-        Map<String, dynamic>.from(data['user'] ?? {});
-
-    if (user['id'] == null) {
-      throw Exception(
-        'Registration succeeded but user ID was not returned',
-      );
-    }
+        Map<String, dynamic>.from(data['user'] ?? data);
 
     return {
-      'message': data['message'],
+      'message': data['message'] ?? 'Registration successful',
       'userId': user['id'],
       'id': user['id'],
       'name': user['name'],
@@ -63,7 +54,7 @@ class ApiService {
   }
 
   // ============================================================
-  // AUTH - LOGIN
+  // LOGIN
   // ============================================================
 
   Future<Map<String, dynamic>> login({
@@ -90,16 +81,10 @@ class ApiService {
     }
 
     final Map<String, dynamic> user =
-        Map<String, dynamic>.from(data['user'] ?? {});
-
-    if (user['id'] == null) {
-      throw Exception(
-        'Login succeeded but user ID was not returned',
-      );
-    }
+        Map<String, dynamic>.from(data['user'] ?? data);
 
     return {
-      'message': data['message'],
+      'message': data['message'] ?? 'Login successful',
       'userId': user['id'],
       'id': user['id'],
       'name': user['name'],
@@ -108,10 +93,56 @@ class ApiService {
   }
 
   // ============================================================
-  // AUTH - FORGOT PASSWORD
+  // GOOGLE LOGIN
   // ============================================================
 
-  Future<String> forgotPassword({
+  Future<Map<String, dynamic>> googleLogin({
+    required String name,
+    required String email,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/api/auth/google'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'name': name.trim(),
+        'email': email.trim(),
+      }),
+    );
+
+    final Map<String, dynamic> data = jsonDecode(res.body);
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception(
+        data['detail'] ?? 'Google login failed',
+      );
+    }
+
+    final Map<String, dynamic> user =
+        Map<String, dynamic>.from(data['user'] ?? {});
+
+    if (user['id'] == null) {
+      throw Exception(
+        'Google login succeeded but user ID was not returned',
+      );
+    }
+
+    return {
+      'message': data['message'] ?? 'Google login successful',
+      'userId': user['id'],
+      'id': user['id'],
+      'name': user['name'],
+      'email': user['email'],
+      'isNewUser': data['isNewUser'] ?? false,
+    };
+  }
+
+  // ============================================================
+  // FORGOT PASSWORD
+  // ============================================================
+
+  Future<Map<String, dynamic>> forgotPassword({
     required String email,
     required String newPassword,
   }) async {
@@ -122,7 +153,7 @@ class ApiService {
       },
       body: jsonEncode({
         'email': email.trim(),
-        'new_password': newPassword,
+        'newPassword': newPassword,
       }),
     );
 
@@ -130,15 +161,15 @@ class ApiService {
 
     if (res.statusCode != 200) {
       throw Exception(
-        data['detail'] ?? 'Password reset failed',
+        data['detail'] ?? 'Failed to reset password',
       );
     }
 
-    return data['message'] ?? 'Password reset successfully';
+    return data;
   }
 
   // ============================================================
-  // UPDATE USER PROFILE
+  // UPDATE PROFILE
   // ============================================================
 
   Future<Map<String, dynamic>> updateProfile({
@@ -166,16 +197,10 @@ class ApiService {
     }
 
     final Map<String, dynamic> user =
-        Map<String, dynamic>.from(data['user'] ?? {});
-
-    if (user['id'] == null) {
-      throw Exception(
-        'Profile updated but user data was not returned',
-      );
-    }
+        Map<String, dynamic>.from(data['user'] ?? data);
 
     return {
-      'message': data['message'],
+      'message': data['message'] ?? 'Profile updated successfully',
       'userId': user['id'],
       'id': user['id'],
       'name': user['name'],
@@ -187,7 +212,9 @@ class ApiService {
   // FETCH USER CARD
   // ============================================================
 
-  Future<CreditCardModel> fetchCard(int userId) async {
+  Future<CreditCardModel> fetchCard({
+    required int userId,
+  }) async {
     final res = await http.get(
       Uri.parse('$baseUrl/api/card/$userId'),
     );
@@ -204,7 +231,7 @@ class ApiService {
   }
 
   // ============================================================
-  // UPDATE USER CARD
+  // UPDATE / CREATE USER CARD
   // ============================================================
 
   Future<CreditCardModel> updateCard({
@@ -229,16 +256,13 @@ class ApiService {
       }),
     );
 
-    if (res.statusCode != 200) {
-      final data = jsonDecode(res.body);
+    final Map<String, dynamic> data = jsonDecode(res.body);
 
+    if (res.statusCode != 200) {
       throw Exception(
-        data['detail'] ??
-            'Failed to update card (${res.statusCode})',
+        data['detail'] ?? 'Failed to update card (${res.statusCode})',
       );
     }
-
-    final Map<String, dynamic> data = jsonDecode(res.body);
 
     return CreditCardModel.fromJson(
       data['card'] ?? data,
@@ -249,7 +273,9 @@ class ApiService {
   // FETCH USER TRANSACTIONS
   // ============================================================
 
-  Future<List<Transaction>> fetchTransactions(int userId) async {
+  Future<List<Transaction>> fetchTransactions({
+    required int userId,
+  }) async {
     final res = await http.get(
       Uri.parse('$baseUrl/api/transactions/$userId'),
     );
@@ -262,9 +288,7 @@ class ApiService {
 
     final List<dynamic> data = jsonDecode(res.body);
 
-    return data
-        .map((t) => Transaction.fromJson(t))
-        .toList();
+    return data.map((t) => Transaction.fromJson(t)).toList();
   }
 
   // ============================================================
@@ -273,9 +297,10 @@ class ApiService {
 
   Future<Transaction> addTransaction({
     required int userId,
-    required String merchant,
+    required String title,
     required double amount,
-    required String category,
+    required TxnCategory category,
+    required DateTime date,
   }) async {
     final res = await http.post(
       Uri.parse('$baseUrl/api/transactions/$userId'),
@@ -283,22 +308,21 @@ class ApiService {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        'merchant': merchant.trim(),
+        // Backend currently uses merchant
+        'merchant': title.trim(),
         'amount': amount,
-        'category': category,
+        'category': category.name,
+        'date': date.toIso8601String(),
       }),
     );
 
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      final data = jsonDecode(res.body);
+    final Map<String, dynamic> data = jsonDecode(res.body);
 
+    if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception(
-        data['detail'] ??
-            'Failed to add transaction (${res.statusCode})',
+        data['detail'] ?? 'Failed to add transaction (${res.statusCode})',
       );
     }
-
-    final Map<String, dynamic> data = jsonDecode(res.body);
 
     return Transaction.fromJson(
       data['transaction'] ?? data,
@@ -311,33 +335,34 @@ class ApiService {
 
   Future<Transaction> updateTransaction({
     required int userId,
-    required String id,
-    required String merchant,
+    required String transactionId,
+    required String title,
     required double amount,
-    required String category,
+    required TxnCategory category,
+    required DateTime date,
   }) async {
     final res = await http.put(
-      Uri.parse('$baseUrl/api/transactions/$userId/$id'),
+      Uri.parse(
+        '$baseUrl/api/transactions/$userId/$transactionId',
+      ),
       headers: {
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        'merchant': merchant.trim(),
+        'merchant': title.trim(),
         'amount': amount,
-        'category': category,
+        'category': category.name,
+        'date': date.toIso8601String(),
       }),
     );
 
-    if (res.statusCode != 200) {
-      final data = jsonDecode(res.body);
+    final Map<String, dynamic> data = jsonDecode(res.body);
 
+    if (res.statusCode != 200) {
       throw Exception(
-        data['detail'] ??
-            'Failed to update transaction (${res.statusCode})',
+        data['detail'] ?? 'Failed to update transaction (${res.statusCode})',
       );
     }
-
-    final Map<String, dynamic> data = jsonDecode(res.body);
 
     return Transaction.fromJson(
       data['transaction'] ?? data,
@@ -353,15 +378,16 @@ class ApiService {
     required String id,
   }) async {
     final res = await http.delete(
-      Uri.parse('$baseUrl/api/transactions/$userId/$id'),
+      Uri.parse(
+        '$baseUrl/api/transactions/$userId/$id',
+      ),
     );
 
     if (res.statusCode != 200 && res.statusCode != 204) {
-      final data = jsonDecode(res.body);
+      final Map<String, dynamic> data = jsonDecode(res.body);
 
       throw Exception(
-        data['detail'] ??
-            'Failed to delete transaction (${res.statusCode})',
+        data['detail'] ?? 'Failed to delete transaction (${res.statusCode})',
       );
     }
   }
@@ -370,7 +396,9 @@ class ApiService {
   // USER REWARDS
   // ============================================================
 
-  Future<int> fetchTotalCoins(int userId) async {
+  Future<int> fetchTotalCoins({
+    required int userId,
+  }) async {
     final res = await http.get(
       Uri.parse('$baseUrl/api/rewards/$userId'),
     );

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../services/api_service.dart';
 import '../screens/forgot_password_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../services/user_session.dart';
+import 'card_setup_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,7 +30,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _api = ApiService();
 
+  final _googleSignIn = GoogleSignIn();
+
   bool _isLoading = false;
+
+  bool _isGoogleLoading = false;
 
   bool _obscurePassword = true;
 
@@ -98,8 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
       String errorMessage = e.toString();
 
       if (errorMessage.startsWith('Exception: ')) {
-        errorMessage =
-            errorMessage.replaceFirst('Exception: ', '');
+        errorMessage = errorMessage.replaceFirst('Exception: ', '');
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,6 +119,137 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  // ============================================================
+  // GOOGLE SIGN-IN / SIGN-UP (combined)
+  //
+  // Firebase tells us via `additionalUserInfo?.isNewUser` whether
+  // this Google account has ever signed in before. First-time
+  // accounts go through CardSetupScreen (same as normal
+  // registration); returning accounts go straight to Dashboard
+  // (same as normal login). This makes "Continue with Google"
+  // correct regardless of which screen (Login or Register) the
+  // person tapped it from.
+  // ============================================================
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      // Step 1: Open Google account picker
+      final googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // User cancelled sign-in
+        return;
+      }
+
+      // Step 2: Get Google authentication credentials
+      final googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Step 3: Authenticate with Firebase
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final firebaseUser = userCredential.user;
+
+      if (firebaseUser == null) {
+        throw Exception('Google sign-in did not return a user');
+      }
+
+      final String name = firebaseUser.displayName ?? 'Google User';
+      final String email = firebaseUser.email ?? '';
+
+      if (email.isEmpty) {
+        throw Exception('Google account did not provide an email');
+      }
+
+      // Step 4: Send Google user details to CredV backend
+      final result = await _api.googleLogin(
+        name: name,
+        email: email,
+      );
+
+      // Step 5: Get REAL database user ID from backend
+      final dynamic rawUserId = result['userId'] ?? result['id'];
+
+      if (rawUserId == null) {
+        throw Exception('User ID was not returned by server');
+      }
+
+      final int userId =
+          rawUserId is int ? rawUserId : int.parse(rawUserId.toString());
+
+      // Backend decides if this is a new CredV user
+      final bool isNewUser = result['isNewUser'] == true;
+
+      // Save REAL backend user ID
+      UserSession.instance.login(
+        id: userId,
+        userName: result['name']?.toString() ?? name,
+        userEmail: result['email']?.toString() ?? email,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isNewUser ? 'Welcome to CredV! 👋' : 'Welcome back, $name! 👋',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Step 6: New user → Card Setup
+      // Existing user → Dashboard
+      if (isNewUser) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CardSetupScreen(
+              userId: userId,
+            ),
+          ),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const DashboardScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      String errorMessage = e.toString();
+
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.replaceFirst('Exception: ', '');
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Google sign-in failed: $errorMessage',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isGoogleLoading = false);
       }
     }
   }
@@ -161,8 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF38D9C0)
-                                .withOpacity(0.20),
+                            color: const Color(0xFF38D9C0).withOpacity(0.20),
                             blurRadius: 28,
                             spreadRadius: 4,
                           ),
@@ -367,6 +503,63 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
 
                   // =====================================================
+                  // DIVIDER
+                  // =====================================================
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: Colors.white24)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          'OR',
+                          style: TextStyle(color: Colors.white38, fontSize: 12),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: Colors.white24)),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // =====================================================
+                  // GOOGLE SIGN-IN BUTTON
+                  // =====================================================
+                  SizedBox(
+                    height: 55,
+                    child: OutlinedButton.icon(
+                      onPressed: _isGoogleLoading ? null : _signInWithGoogle,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white24),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: _isGoogleLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.g_mobiledata, size: 28),
+                      label: Text(
+                        _isGoogleLoading
+                            ? 'Signing in...'
+                            : 'Continue with Google',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // =====================================================
                   // REGISTER
                   // =====================================================
                   Row(
@@ -378,14 +571,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.white60,
                         ),
                       ),
-
                       TextButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const RegisterScreen(),
+                              builder: (context) => const RegisterScreen(),
                             ),
                           );
                         },

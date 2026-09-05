@@ -134,8 +134,12 @@ class _HomeTabState extends State<_HomeTab> {
 
     try {
       final results = await Future.wait([
-        _api.fetchCard(_userId),
-        _api.fetchTransactions(_userId),
+        _api.fetchCard(
+          userId: _userId,
+        ),
+        _api.fetchTransactions(
+          userId: _userId,
+        ),
       ]);
 
       if (!mounted) return;

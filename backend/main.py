@@ -80,6 +80,10 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class GoogleAuthRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=50)
+    email: str
+
 
 # FORGOT PASSWORD REQUEST
 class ForgotPasswordRequest(BaseModel):
@@ -257,6 +261,76 @@ def login_user(
             "id": user.id,
             "name": user.name,
             "email": user.email,
+        }
+    }
+
+
+
+# ---------------- GOOGLE AUTH ----------------
+
+@app.post("/api/auth/google")
+def google_auth(
+    google_data: GoogleAuthRequest,
+    db: Session = Depends(get_db)
+):
+    name = google_data.name.strip()
+    email = google_data.email.strip().lower()
+
+    # Validate email
+    if not email or "@" not in email:
+        raise HTTPException(
+            status_code=400,
+            detail="Valid Google email is required"
+        )
+
+    # Check whether this Google user already exists
+    existing_user = (
+        db.query(User)
+        .filter(User.email == email)
+        .first()
+    )
+
+    # ========================================================
+    # EXISTING USER
+    # ========================================================
+    if existing_user:
+        return {
+            "message": "Google login successful",
+            "isNewUser": False,
+            "user": {
+                "id": existing_user.id,
+                "name": existing_user.name,
+                "email": existing_user.email,
+            }
+        }
+
+    # ========================================================
+    # NEW GOOGLE USER
+    # ========================================================
+
+    # Google users don't use a local password.
+    # Generate an internal random value for the required field.
+    import secrets
+
+    random_password = secrets.token_urlsafe(32)
+
+    new_user = User(
+        name=name,
+        email=email,
+        password_hash=pwd_context.hash(random_password)
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {
+        "message": "Google registration successful",
+        "isNewUser": True,
+        "user": {
+            "id": new_user.id,
+            "name": new_user.name,
+            "email": new_user.email,
         }
     }
 

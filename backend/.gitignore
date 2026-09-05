@@ -1,7 +1,20 @@
+# Environment variables
 .env
+
+# Python
 __pycache__/
 *.pyc
-*.db
-*.sqlite
 venv/
 .venv/
+
+# Local databases
+*.db
+*.sqlite
+
+# Firebase Admin SDK secrets
+serviceAccountKey.json
+firebase-adminsdk-*.json
+
+# Private keys
+*.pem
+*.key

@@ -50,7 +50,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      final card = await _api.fetchCard(userId);
+      final card = await _api.fetchCard(
+        userId: userId,
+      );
 
       if (!mounted) return;
 
@@ -120,9 +122,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: _savingProfile
-                  ? null
-                  : () => Navigator.pop(dialogContext),
+              onPressed:
+                  _savingProfile ? null : () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -226,9 +227,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _savingProfile = false;
                         });
 
-                        String errorMessage = e
-                            .toString()
-                            .replaceFirst('Exception: ', '');
+                        String errorMessage =
+                            e.toString().replaceFirst('Exception: ', '');
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -436,10 +436,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.tealAccent,
       ),
       children: const [
-        Text(
-          'A modern Flutter credit card management app for managing cards,'
-          'tracking transactions, rewards, and personal finances.'
-        ),
+        Text('A modern Flutter credit card management app for managing cards,'
+            'tracking transactions, rewards, and personal finances.'),
       ],
     );
   }
@@ -579,12 +577,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 onTap: _editProfile,
               ),
-
               const Divider(
                 height: 1,
                 color: Colors.white12,
               ),
-
               ListTile(
                 leading: const Icon(
                   Icons.credit_card_outlined,
@@ -657,9 +653,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    value
-                        ? 'Notifications enabled'
-                        : 'Notifications disabled',
+                    value ? 'Notifications enabled' : 'Notifications disabled',
                   ),
                 ),
               );
@@ -694,12 +688,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 onTap: _showAbout,
               ),
-
               const Divider(
                 height: 1,
                 color: Colors.white12,
               ),
-
               ListTile(
                 leading: const Icon(
                   Icons.logout,

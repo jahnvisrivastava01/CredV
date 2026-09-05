@@ -44,7 +44,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
 
     try {
-      final transactions = await _api.fetchTransactions(_userId);
+      final transactions = await _api.fetchTransactions(userId: _userId);
 
       if (!mounted) return;
 

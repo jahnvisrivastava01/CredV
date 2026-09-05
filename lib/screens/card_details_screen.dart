@@ -63,10 +63,13 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
     }
 
     try {
-      final card = await _api.fetchCard(_userId);
+      final card = await _api.fetchCard(
+        userId: _userId,
+      );
 
-      final transactions =
-          await _api.fetchTransactions(_userId);
+      final transactions = await _api.fetchTransactions(
+        userId: _userId,
+      );
 
       if (!mounted) return;
 
@@ -217,9 +220,7 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
-       
       ),
-
       body: RefreshIndicator(
         color: Colors.tealAccent,
         onRefresh: _loadData,
@@ -273,9 +274,7 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 30),
-
                   Text(
                     '•••• •••• •••• ${card.last4}',
                     style: const TextStyle(
@@ -284,22 +283,17 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
                       letterSpacing: 2,
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _CardInfo(
                         label: 'Credit Limit',
-                        value:
-                            '₹${card.creditLimit.toStringAsFixed(0)}',
+                        value: '₹${card.creditLimit.toStringAsFixed(0)}',
                       ),
                       _CardInfo(
                         label: 'Outstanding',
-                        value:
-                            '₹${card.outstanding.toStringAsFixed(0)}',
+                        value: '₹${card.outstanding.toStringAsFixed(0)}',
                       ),
                     ],
                   ),
@@ -334,12 +328,9 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
                       size: 28,
                     ),
                   ),
-
                   const SizedBox(width: 16),
-
                   Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'Credit Score',
@@ -347,9 +338,7 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
                           color: Colors.white54,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       Text(
                         '${card.creditScore}',
                         style: const TextStyle(
@@ -360,9 +349,7 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
                       ),
                     ],
                   ),
-
                   const Spacer(),
-
                   Text(
                     _scoreLabel(card.creditScore),
                     style: const TextStyle(
@@ -387,12 +374,10 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'Credit Utilization',
@@ -411,24 +396,19 @@ class _CardDetailsScreenState extends State<CardDetailsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
                       value: card.utilization.clamp(0.0, 1.0),
                       minHeight: 10,
                       backgroundColor: Colors.white10,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(
+                      valueColor: const AlwaysStoppedAnimation<Color>(
                         Colors.tealAccent,
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 12),
-
                   Text(
                     'Available credit: ₹${(card.creditLimit - card.outstanding).toStringAsFixed(0)}',
                     style: const TextStyle(

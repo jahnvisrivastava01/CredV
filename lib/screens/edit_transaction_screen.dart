@@ -13,8 +13,7 @@ class EditTransactionScreen extends StatefulWidget {
   });
 
   @override
-  State<EditTransactionScreen> createState() =>
-      _EditTransactionScreenState();
+  State<EditTransactionScreen> createState() => _EditTransactionScreenState();
 }
 
 class _EditTransactionScreenState extends State<EditTransactionScreen> {
@@ -62,12 +61,12 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
     try {
       await _api.updateTransaction(
         userId: _userId,
-        id: widget.transaction.id,
-        merchant: _merchantController.text.trim(),
+        transactionId: widget.transaction.id,
+        title: _merchantController.text.trim(),
         amount: double.parse(_amountController.text.trim()),
-        category: _selectedCategory.name,
+        category: _selectedCategory,
+        date: widget.transaction.date,
       );
-
       if (!mounted) return;
 
       Navigator.pop(context, true);
@@ -91,14 +90,12 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1A),
-
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F0F1A),
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text('Edit Transaction'),
       ),
-
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -112,9 +109,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                   fontSize: 14,
                 ),
               ),
-
               const SizedBox(height: 25),
-
               TextFormField(
                 controller: _merchantController,
                 style: const TextStyle(color: Colors.white),
@@ -141,9 +136,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                   return null;
                 },
               ),
-
               const SizedBox(height: 18),
-
               TextFormField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
@@ -174,9 +167,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                   return null;
                 },
               ),
-
               const SizedBox(height: 20),
-
               const Text(
                 'Category',
                 style: TextStyle(
@@ -184,9 +175,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-
               const SizedBox(height: 10),
-
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -225,15 +214,11 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 35),
-
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: _saving
-                      ? null
-                      : _updateTransaction,
+                  onPressed: _saving ? null : _updateTransaction,
                   icon: _saving
                       ? const SizedBox(
                           height: 20,
@@ -245,9 +230,7 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
                         )
                       : const Icon(Icons.save),
                   label: Text(
-                    _saving
-                        ? 'Updating...'
-                        : 'Update Transaction',
+                    _saving ? 'Updating...' : 'Update Transaction',
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.tealAccent,
