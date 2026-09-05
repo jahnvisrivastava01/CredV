@@ -454,7 +454,7 @@ flutter run
 
 ---
 
-# 👩‍💻 Developer
+# 👩‍💻 Author
 
 **Jahnvi Srivastava**
 
