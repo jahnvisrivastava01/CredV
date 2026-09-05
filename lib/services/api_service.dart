@@ -153,7 +153,7 @@ class ApiService {
       },
       body: jsonEncode({
         'email': email.trim(),
-        'newPassword': newPassword,
+        'new_password': newPassword,
       }),
     );
 
